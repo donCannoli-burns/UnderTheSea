@@ -85,3 +85,20 @@ Useful skills and iotms and stuff: https://docs.google.com/spreadsheets/d/1bAZj1
 ## Items to add support for
 
 - Folder Holder
+
+
+---
+
+## Optional Sea Prep branch
+
+For the full aftercore Sea Prep suite, switch to the **`sea-prep` branch**:
+
+```text
+git checkout donCannoli-burns/UnderTheSea sea-prep
+sea-prep help
+sea-prep sim
+sea-prep run
+git update
+```
+
+Read [SEA_PREP.md](SEA_PREP.md) for commands, branch-switching precautions and dependencies. The default `main` branch and `UnderTheSea` loop remain unchanged.
