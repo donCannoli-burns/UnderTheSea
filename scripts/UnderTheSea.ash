@@ -1,7 +1,8 @@
 import UnderTheSeaGlobals.ash;
 
 // ─── PER-ACCOUNT CONFIG ───────────────────────────────────────────────────────
-// Set with the mafia CLI; all default to off.
+// Set with the mafia CLI; optional toggles default to off.
+// uts_autoBuyPriceLimit defaults to 100000 Meat per item.
 // uts_godRunGuard, uts_postloopCommand, uts_usePilsners, uts_postLoopRunOutEagleBanish, uts_postLoopFarmPearls, uts_postLoopCloverFishy, uts_postLoopPrepCodpiece and uts_pearloArgs
 // see the README for what each does.
 familiar chosenFamiliar = $familiar[none]; //For 
@@ -2990,6 +2991,21 @@ void seaMonkees() {
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 
+// Temporarily override mafia's native mall-buy ceiling only while this script
+// runs. A separate uts_ preference keeps the player's normal cap unchanged.
+void configureAutoBuyLimit() {
+    string limitText = get_property("uts_autoBuyPriceLimit");
+    if (limitText == "") {
+        limitText = "100000";
+        set_property("uts_autoBuyPriceLimit", limitText);
+    }
+    int limit = to_int(limitText);
+    if (limit <= 0 || to_string(limit) != limitText)
+        abort("uts_autoBuyPriceLimit must be a positive whole number of Meat; got: " + limitText);
+    set_property("autoBuyPriceLimit", limitText);
+    print("UnderTheSea auto-buy limit: " + limit + " Meat per item.", "blue");
+}
+
 // Vararg rather than a plain string: mafia prompts for any missing typed
 // parameter, but collects a vararg silently, so a bare "UnderTheSea" runs
 // without a dialog.
@@ -3005,6 +3021,7 @@ void main(string... args) {
     }
     if (command != "" && command != "postloop")
         abort("Unknown command \"" + command + "\" -- plain \"UnderTheSea\" runs the loop, \"UnderTheSea sim\" prints the IOTM and pull checklists, \"UnderTheSea postloop\" runs only the postloop steps.");
+    string autoBuyPriceLimitStorage = get_property("autoBuyPriceLimit");
     DropsItems = maximize("Drops Items",false) ? "Drops Items, sea" : "item drop, sea";
     if (command == "postloop") {
         // Postloop-only mode: the finishing steps the run would have reached
@@ -3014,6 +3031,7 @@ void main(string... args) {
         // Each step still self-gates on its own uts_postLoop* pref, so with
         // none of them set this does nothing but set up and tear down.
         try {
+            configureAutoBuyLimit();
             set_property("choiceAdventureScript", "UnderTheSea_Choice.ash");
             set_property("betweenBattleScript", "");
             set_property("afterAdventureScript", "");
@@ -3036,6 +3054,7 @@ void main(string... args) {
             if (get_property("uts_postloopCommand") != "")
                 cli_execute(get_property("uts_postloopCommand"));
         } finally {
+            set_property("autoBuyPriceLimit", autoBuyPriceLimitStorage);
             set_property("choiceAdventureScript", choiceStorage);
             set_property("betweenBattleScript", betweenBattleStorage);
             set_property("afterAdventureScript", afterAdventureStorage);
@@ -3045,6 +3064,7 @@ void main(string... args) {
         return;
     }
     try {
+        configureAutoBuyLimit();
         set_property("choiceAdventureScript", "UnderTheSea_Choice.ash");
         set_property("betweenBattleScript", "");
         set_property("afterAdventureScript", "");
@@ -3057,6 +3077,7 @@ void main(string... args) {
         initialization();
         seaMonkees();
     } finally {
+        set_property("autoBuyPriceLimit", autoBuyPriceLimitStorage);
         set_property("choiceAdventureScript", choiceStorage);
         set_property("betweenBattleScript", betweenBattleStorage);
         set_property("afterAdventureScript", afterAdventureStorage);
