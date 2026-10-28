@@ -23,6 +23,26 @@
 | `UnderTheSea` | Runs the loop: the full run, from initialization through the sorceress. |
 | `UnderTheSea sim` | Checklist only: prints which supported IOTMs, skills and familiars you own and which pulls are stocked in Hagnk's. Nothing is pulled, fought or spent; use it before ascending to build a shopping list. |
 | `UnderTheSea postloop` | Runs only the postloop steps — the pilsner drain, the codpiece prep, the screech rundown, the pearl farm, the codpiece top-up and `uts_postloopCommand` — and none of the run. Use it to exercise the `uts_postLoop*` preferences on a finished account, where a bare `UnderTheSea` would start an aftercore Sea run instead. Each step still self-gates on its own preference. |
+| `UnderTheSea sea-start` | **Optional handoff workflow.** Run the bundled `sea_start.ash` to inspect character state and either run the unfinished sea loop or, after King liberation and interaction unlock, run the postloop. This is never invoked by a plain `UnderTheSea`. |
+| `UnderTheSea sea-start status` | Print the sea-start state, inventory and codpiece report without running the workflow, changing preferences or waiting. |
+| `UnderTheSea sea-start restore` | Recover `uts_postloopCommand` after a hard interruption when a restore is pending. |
+
+
+## Optional sea-start handoff
+
+The uploaded `sea_start.ash` is bundled as `scripts/sea_start.ash` and called **only** via `UnderTheSea sea-start` (or directly with `call sea_start.ash`). It is **not** part of the default `UnderTheSea` loop or its postloop steps.
+
+```text
+git update
+verify sea_start.ash
+verify UnderTheSea
+UnderTheSea sea-start status
+UnderTheSea sea-start
+```
+
+On an unfinished run with more than two adventures available, sea-start refreshes state, runs KoLmafia breakfast and starts `UnderTheSea`. If the King is liberated and interactions are unlocked, it instead calls `UnderTheSea postloop`. When a full run has already done its postloop, sea-start does **not** call postloop again. On completion, it attempts aftercore setup (meatcar, Shorter-Order Cook/blue plate, MCD and HP/MP recovery); if an autumn-aton is in inventory, it calls optional `fallbot.ash`. It temporarily replaces `uts_postloopCommand` with `don_breakfast` and restores the prior value in a `finally` block. **`don_breakfast` must be installed for the farming handoff**.
+
+If a hard interruption leaves the pending-restore marker, inspect the report and use `UnderTheSea sea-start restore` before attempting another run. The real run also sets `choiceAdventure1564 = 1` and waits five seconds after refreshing; `status` and `restore` skip those actions.
 
 Preferences, set once in the gCLI. The toggle preferences default to off; `uts_autoBuyPriceLimit` defaults to **100,000 Meat per item**:
 
