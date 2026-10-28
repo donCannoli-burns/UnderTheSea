@@ -51,8 +51,10 @@ This is a separate Git branch, **not a plugin in the main branch**. KoLmafia's `
 
 The configured `home_clan` is **The Meat Packers Union Of Slave Labor**. `sea-prep run` calls `clanhop <home_clan>` if not already in that clan, and verifies the active clan name before visiting `clan_viplounge.php?action=photobooth`. `sea-prep booth` invokes just this audit. You must have a working `clanhop` custom script and permission to rejoin the clan; `clanhop` is not a built-in KoLmafia command.
 
+The audit verifies the booth primarily from `photobooth.gif` on `clan_viplounge.php` or KoLmafia's `get_clan_lounge()` entry for `photo booth sized crate` (item 11656), rather than relying only on the choice-1533 menu text. It checks floor 2 if needed. Success lines print a **blue ✓**; this is confirmation of the booth fixture, not proof of an individual Sheriff's item-specific unlock.
+
 The audit recognizes the three booth actions: **Get your photo taken** (up to 3/day), **Borrow a prop** (up to 3/day), and **Take a group photo** (up to 1/day). It parses available counts from the page when displayed; for the first two, KoLmafia's `_photoBoothEffects` and `_photoBoothEquipment` are fallback estimates if the page text lacks counts.
 
-When the home-clan booth is verified, all three Sheriff options report **green (supported by booth)** even if not in inventory. **Held/borrowable are distinct**: zero remaining borrow credits means the booth is stocked, but missing items cannot be borrowed today. The routine never automatically borrows props, takes photos, or spends credits. If the home clan or booth cannot be verified, the script does not claim unheld props are available.
+When the home-clan booth is verified, all three Sheriff options report **blue ✓ (home booth verified; item-specific unlock unverified)** even if not in inventory. **Held/borrowable are distinct**: zero remaining borrow credits means the booth is stocked, but missing items cannot be borrowed today. The routine never automatically borrows props, takes photos, or spends credits. If the home clan or booth cannot be verified, the script does not claim unheld props are available.
 
 `sea-prep check` does **not** change clans. `sea-prep sim` never makes page visits or runs `clanhop`; it reports what a full run would do.

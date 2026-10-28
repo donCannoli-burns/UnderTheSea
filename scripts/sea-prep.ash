@@ -846,7 +846,9 @@ void don_sea_wallet_end_of_day() {
 string home_clan = "The Meat Packers Union Of Slave Labor";
 
 void don_photo_green(string msg) {
-    print("[Sea Prep] " + msg, "green");
+    // Blue informational check mark. Confirmed facts only; this does not
+    // assert that an individual Sheriff prop was unlocked or borrowed.
+    print("[Sea Prep] ✓ " + msg, "blue");
 }
 
 int sea_prep_booth_remaining(string text, string action, int cap) {
@@ -888,29 +890,48 @@ void sea_prep_photo_booth(boolean may_hop) {
         }
     }
 
-    // A GET for booth status; this function never borrows props or uses any photo credit.
-    string raw = visit_url("clan_viplounge.php?action=photobooth");
+    // KoLmafia detects the booth from photobooth.gif in the VIP lounge.
+    // The action page normally redirects into choice 1533 and is NOT a
+    // reliable location for proof that a fixture exists.
+    string lounge_page = visit_url("clan_viplounge.php");
+    int [item] lounge_fixtures = get_clan_lounge();
+    boolean booth_verified = contains_text(to_lower_case(lounge_page), "photobooth.gif")
+        || lounge_fixtures contains $item[photo booth sized crate];
+
+    // Also check floor 2 in case the booth moves between VIP floors.
+    if (!booth_verified) {
+        string upper_lounge = visit_url("clan_viplounge.php?whichfloor=2");
+        int [item] upper_fixtures = get_clan_lounge();
+        booth_verified = contains_text(to_lower_case(upper_lounge), "photobooth.gif")
+            || upper_fixtures contains $item[photo booth sized crate];
+    }
+
+    // Read the menu for the daily counts only after we have confirmed
+    // the fixture; never borrow an item or spend a photo credit here.
+    string raw = "";
+    if (booth_verified) raw = visit_url("clan_viplounge.php?action=photobooth");
     string clean = to_lower_case(replace_all(create_matcher("(?s)<[^>]*>", raw), " "));
     clean = replace_all(create_matcher("\\s+", clean), " ");
     boolean has_effect = contains_text(clean, "get your photo taken");
     boolean has_prop = contains_text(clean, "borrow a prop");
     boolean has_group = contains_text(clean, "take a group photo");
-    // Some exhausted actions are omitted or disabled in the page;
-    // the other visible actions still provide booth evidence.
-    boolean booth_verified = has_effect || has_prop || has_group
-        || contains_text(raw, "whichchoice=1533");
+    // Choice markup sometimes has hidden form values instead of URL
+    // parameters. This is a last-resort confirmation signal.
+    if (!booth_verified)
+        booth_verified = has_effect || has_prop || has_group
+            || contains_text(raw, "whichchoice=1533");
 
     if (!booth_verified) {
-        don_warn("Home clan photo booth not confirmed by its page. No automatic green availability claims.");
+        don_warn("Home clan booth not found in VIP lounge; cannot verify prop availability.");
         foreach prop in $items[sheriff pistol, sheriff moustache, sheriff badge] {
             if (available_amount(prop) > 0)
                 don_photo_green("Sheriff prop held: " + prop + " (" + available_amount(prop) + ").");
-            else don_warn("Sheriff prop not held and booth unverified: " + prop + ".");
+            else don_note("Sheriff prop " + prop + ": no inventory copy; availability unverified.");
         }
         return;
     }
 
-    don_photo_green("Home clan photobooth verified; Sheriff pistol, moustache and badge are booth prop options.");
+    don_photo_green("Home clan photo booth confirmed (VIP lounge fixture).");
     int effects_left = sea_prep_booth_remaining(clean, "get your photo taken", 3);
     int props_left = sea_prep_booth_remaining(clean, "borrow a prop", 3);
     int groups_left = sea_prep_booth_remaining(clean, "take a group photo", 1);
@@ -937,8 +958,8 @@ void sea_prep_photo_booth(boolean may_hop) {
         if (available_amount(prop) > 0)
             don_photo_green("Sheriff prop ready: " + prop + " (" + available_amount(prop) + " held).");
         else
-            don_photo_green("Sheriff prop supported by VERIFIED home clan photo booth: " + prop
-                + " (" + props_left + " daily borrows remaining, not yet held).");
+            don_photo_green("Sheriff prop " + prop + ": home clan booth confirmed; "
+                + props_left + " prop borrows remain (not held; item-specific unlock unverified).");
     }
     if (props_left == 0)
         don_warn("All 3 daily photobooth prop borrows are exhausted. Sheriff items not held cannot be borrowed again today.");
