@@ -3019,8 +3019,23 @@ void main(string... args) {
         pullChecklist();
         return;
     }
+    if (command == "sea-start") {
+        // Explicit opt-in: delegate to the standalone handoff script.
+        // No full-loop setup or cleanup should run in this dispatcher path.
+        if (count(args) > 2)
+            abort("Usage: UnderTheSea sea-start [status|restore]");
+        string seaMode = count(args) > 1 ? to_lower_case(args[1]) : "";
+        if (seaMode != "" && seaMode != "status" && seaMode != "restore")
+            abort("Usage: UnderTheSea sea-start [status|restore]");
+        string seaCommand = "call sea_start.ash";
+        if (seaMode != "")
+            seaCommand += " " + seaMode;
+        if (!cli_execute(seaCommand))
+            abort("sea-start dispatch failed; check that sea_start.ash is installed and verify it.");
+        return;
+    }
     if (command != "" && command != "postloop")
-        abort("Unknown command \"" + command + "\" -- plain \"UnderTheSea\" runs the loop, \"UnderTheSea sim\" prints the IOTM and pull checklists, \"UnderTheSea postloop\" runs only the postloop steps.");
+        abort("Unknown command \"" + command + "\" -- use UnderTheSea, UnderTheSea sim, UnderTheSea postloop, or UnderTheSea sea-start [status|restore].");
     string autoBuyPriceLimitStorage = get_property("autoBuyPriceLimit");
     DropsItems = maximize("Drops Items",false) ? "Drops Items, sea" : "item drop, sea";
     if (command == "postloop") {
