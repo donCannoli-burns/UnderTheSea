@@ -840,6 +840,112 @@ void don_sea_wallet_end_of_day() {
     if (farm_approved || ran_pvp) don_sea_flogger();
 }
 
+
+// Home clan is the only clan whose photo booth we use for Sea prep.
+// clanhop is a separate user-installed script (not a built-in KoLmafia command).
+string home_clan = "The Meat Packers Union Of Slave Labor";
+
+void don_photo_green(string msg) {
+    print("[Sea Prep] " + msg, "green");
+}
+
+int sea_prep_booth_remaining(string text, string action, int cap) {
+    // Parsed counts are only trusted when the associated menu label is present.
+    // Choice 1533 displays labels followed by the daily remaining count.
+    if (!contains_text(text, action)) return -1;
+    matcher found_count = create_matcher(action + "[^0-9]{0,90}([0-3])\\s+(?:more\\s+)?times?", text);
+    if (!find(found_count)) return -1;
+    int remaining = to_int(group(found_count, 1));
+    if (remaining < 0 || remaining > cap) return -1;
+    return remaining;
+}
+
+void sea_prep_photo_booth(boolean may_hop) {
+    don_note("Home clan photo booth: " + home_clan + ".");
+    string current_clan = get_clan_name();
+    if (current_clan != home_clan) {
+        if (!may_hop) {
+            don_warn("Photo booth not verified: currently in '" + current_clan
+                + "'. CHECK will not change clans. Use 'sea-prep booth' for a live home-clan check.");
+            foreach prop in $items[sheriff pistol, sheriff moustache, sheriff badge] {
+                if (available_amount(prop) > 0)
+                    don_photo_green("Sheriff prop held: " + prop + " (" + available_amount(prop) + ").");
+                else
+                    don_note("Sheriff prop " + prop + ": not held; home-clan booth not yet verified.");
+            }
+            return;
+        }
+        don_note("Switching to home clan via clanhop.");
+        if (!cli_execute("clanhop " + home_clan)) {
+            don_warn("clanhop failed or is not installed. No photo booth checked.");
+            return;
+        }
+        current_clan = get_clan_name();
+        if (current_clan != home_clan) {
+            don_warn("Cannot verify home clan after clanhop (current: '" + current_clan
+                + "'). Refusing to claim Sheriff props available.");
+            return;
+        }
+    }
+
+    // A GET for booth status; this function never borrows props or uses any photo credit.
+    string raw = visit_url("clan_viplounge.php?action=photobooth");
+    string clean = to_lower_case(replace_all(create_matcher("(?s)<[^>]*>", raw), " "));
+    clean = replace_all(create_matcher("\\s+", clean), " ");
+    boolean has_effect = contains_text(clean, "get your photo taken");
+    boolean has_prop = contains_text(clean, "borrow a prop");
+    boolean has_group = contains_text(clean, "take a group photo");
+    // Some exhausted actions are omitted or disabled in the page;
+    // the other visible actions still provide booth evidence.
+    boolean booth_verified = has_effect || has_prop || has_group
+        || contains_text(raw, "whichchoice=1533");
+
+    if (!booth_verified) {
+        don_warn("Home clan photo booth not confirmed by its page. No automatic green availability claims.");
+        foreach prop in $items[sheriff pistol, sheriff moustache, sheriff badge] {
+            if (available_amount(prop) > 0)
+                don_photo_green("Sheriff prop held: " + prop + " (" + available_amount(prop) + ").");
+            else don_warn("Sheriff prop not held and booth unverified: " + prop + ".");
+        }
+        return;
+    }
+
+    don_photo_green("Home clan photobooth verified; Sheriff pistol, moustache and badge are booth prop options.");
+    int effects_left = sea_prep_booth_remaining(clean, "get your photo taken", 3);
+    int props_left = sea_prep_booth_remaining(clean, "borrow a prop", 3);
+    int groups_left = sea_prep_booth_remaining(clean, "take a group photo", 1);
+
+    if (effects_left < 0) {
+        effects_left = max(0, 3 - to_int(get_property("_photoBoothEffects")));
+        don_note("Get your photo taken: " + effects_left + "/3 remaining (KoLmafia daily preference; page count not confirmed).");
+    } else
+        don_photo_green("Get your photo taken: " + effects_left + "/3 remaining (photobooth page).");
+
+    if (props_left < 0) {
+        props_left = max(0, 3 - to_int(get_property("_photoBoothEquipment")));
+        don_note("Borrow a prop: " + props_left + "/3 remaining (KoLmafia daily preference; page count not confirmed).");
+    } else
+        don_photo_green("Borrow a prop: " + props_left + "/3 remaining (photobooth page).");
+
+    if (groups_left < 0) {
+        if (has_group) don_photo_green("Take a group photo: option present; remaining count unconfirmed (daily cap 1).");
+        else don_note("Take a group photo: option/count not shown; daily cap 1.");
+    } else
+        don_photo_green("Take a group photo: " + groups_left + "/1 remaining (photobooth page).");
+
+    foreach prop in $items[sheriff pistol, sheriff moustache, sheriff badge] {
+        if (available_amount(prop) > 0)
+            don_photo_green("Sheriff prop ready: " + prop + " (" + available_amount(prop) + " held).");
+        else
+            don_photo_green("Sheriff prop supported by VERIFIED home clan photo booth: " + prop
+                + " (" + props_left + " daily borrows remaining, not yet held).");
+    }
+    if (props_left == 0)
+        don_warn("All 3 daily photobooth prop borrows are exhausted. Sheriff items not held cannot be borrowed again today.");
+    else
+        don_note("Photo booth availability audit only: no prop borrowed automatically.");
+}
+
 void don_sea_setup(boolean may_act) {
     if (may_act) {
         set_property("autoSatisfyWithNPCs", "true");
@@ -876,12 +982,9 @@ void don_sea_setup(boolean may_act) {
     } else don_warn("Codpiece not available for slot verification.");
     don_note("MANUAL: confirm all underwater maps completed before ascending.");
     don_note("OPTIONAL: locket black crayon golem + unholy diver; clear Mer-kin Graffiti from NC queue.");
-    don_note("Clan photo booth: ensure sheriff pistol, sheriff moustache, and sheriff badge can be borrowed daily.");
-    foreach it in $items[sheriff pistol, sheriff moustache, sheriff badge] {
-        if (available_amount(it) == 0) don_warn("Sheriff prop missing today: " + it + " (ensure clan photobooth is stocked).");
-    }
+    sea_prep_photo_booth(may_act);
     if (available_amount($item[Clan VIP Lounge key]) == 0)
-        don_warn("Clan VIP Lounge key not accessible; photobooth sheriff props may be unavailable.");
+        don_warn("Clan VIP Lounge key not accessible; photobooth may be unavailable.");
 }
 
 // Optional ASH varargs: no gCLI/dropdown prompt when launched without arguments.
@@ -890,6 +993,7 @@ void don_sea_setup(boolean may_act) {
 void sea_prep_help() {
     don_note("Sea Prep optional branch: commands and descriptions.");
     don_note("sea-prep help    - show this command reference; default without arguments.");
+    don_note("sea-prep booth   - clanhop to configured home clan, inspect photo booth and Sheriff prop access (no borrowing).");
     don_note("sea-prep sim     - READ-ONLY full preparation simulation and resource plan.");
     don_note("sea-prep check   - Sea checklist/resource warnings; no spending.");
     don_note("sea-prep run     - FULL Sea aftercore suite; may spend Meat, items, turns and PvP.");
@@ -957,6 +1061,7 @@ void sea_prep_sim() {
     don_note("SIM optional dailies: Boxing Day, workshed, legend food, extra dailies use their don_preAsc* preferences.");
     don_note("SIM Sea: full RUN calls the UnderTheSea sim checklist (when don_preAscSeaRunSim=true).");
     don_note("SIM trophies: full RUN checks the Trophy Hut and buys eligible unclaimed trophies.");
+    don_note("SIM photo booth: full RUN would switch via clanhop to the home clan and inspect its photo booth. No SIM switch, visit or borrow.");
     int adv = my_adventures();
     int pvp = pvp_attacks_left();
     don_note("SIM cleanup: " + adv + " adventures, " + pvp + " PvP fights remain.");
@@ -975,6 +1080,7 @@ void main(string... modes) {
     if (count(modes) > 0) mode = to_lower_case(modes[0]);
     if (mode == "help") { sea_prep_help(); return; }
     if (mode == "sim") { sea_prep_sim(); return; }
+    if (mode == "booth") { sea_prep_photo_booth(true); return; }
     if (mode == "check") {
         don_note("Sea pre-ascension CHECK-ONLY (no purchases, no Codpiece changes).");
         don_sea_setup(false);
@@ -985,7 +1091,7 @@ void main(string... modes) {
         return;
     }
     if (mode != "" && mode != "run" && mode != "spend" && mode != "pearls" && mode != "wallet") {
-        don_warn("Usage: sea-prep [help|sim|run|check|wallet|pearls|spend]");
+        don_warn("Usage: sea-prep [help|sim|booth|run|check|wallet|pearls|spend]");
         return;
     }
     if (!don_aftercore()) { don_warn("Run this before ascending, in aftercore (king liberated)."); return; }
