@@ -8,11 +8,11 @@
 //        call sea_start.ash          (run workflow)
 //        call sea_start.ash restore  (recover postloop pref after hard interruption)
 //
-// Requires a working UnderTheSea command and don_breakfast command.
+// Requires a working UnderTheSea command and installed don_custom_functions.ash dependencies.
 // Optional: fallbot.ash, Shorter-Order Cook, blue plate, autumn-aton.
 // IMPORTANT: UnderTheSea postloop itself calls uts_postloopCommand.
 
-string FARMING_COMMAND = "don_breakfast";
+string FARMING_COMMAND = "ashq import <don_custom_functions.ash>; augmentBreakfast();";
 string POSTLOOP_PREF = "uts_postloopCommand";
 string BACKUP_PREF = "seaStar_previousPostloopCommand";
 string PENDING_PREF = "seaStar_postloopRestorePending";
