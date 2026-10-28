@@ -1,7 +1,7 @@
 # UnderTheSea
 11,037 Leagues Under the Sea loop.
 
-`git checkout Astro3207/UnderTheSea`
+```git checkout donCannoli-burns/UnderTheSea```
 
 ## Hard requirements
 
