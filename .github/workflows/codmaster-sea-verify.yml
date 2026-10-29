@@ -1,4 +1,5 @@
 name: Sea Prep + absorbed CodMaster compile
+# Re-run against latest CodMaster library branch after ASH reserved-name correction.
 on:
   push:
     branches: ["sea-prep"]
