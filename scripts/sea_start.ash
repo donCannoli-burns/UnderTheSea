@@ -1,3 +1,4 @@
+import <don_codmaster_lib.ash>;
 // sea_start.ash
 // Author: doncannoli
 // KoLmafia / UnderTheSea aftercore handoff
@@ -132,6 +133,8 @@ void print_live_list() {
     print("uts_postloopCommand: " + get_property(POSTLOOP_PREF));
     print_astral_inventory();
     print_codpiece_gems();
+    // Read legacy spell.txt without changing mounted gems or preferences.
+    don_cod_print_saved("spell");
     print("===============================================", "blue");
 }
 
@@ -317,8 +320,24 @@ void main(string... modes) {
         restore_pending();
         return;
     }
+    // Explicit only: never mutate a preset as part of the normal Sea handoff.
+    if (mode == "codpiece" || mode == "codpiece-save") {
+        if (count(modes) != 2 || !don_cod_valid_name(modes[1]))
+            abort("Usage: call sea_start.ash [codpiece|codpiece-save] <preset>");
+        string name = modes[1];
+        if (mode == "codpiece") {
+            if (!don_cod_equip_saved(name))
+                abort("sea-start: preset '" + name + "' unavailable or failed. Inspect slots before retrying.");
+            print("sea-start: equipped preset '" + name + "'.", "green");
+        } else {
+            if (!don_cod_save_equipped(name, false))
+                abort("sea-start: cannot save preset '" + name + "' (existing saves protected).");
+            print("sea-start: saved mounted gems as '" + name + "'.", "green");
+        }
+        return;
+    }
     if (mode != "") {
-        print("Usage: call sea_start.ash [status|restore]", "red");
+        print("Usage: call sea_start.ash [status|restore|codpiece NAME|codpiece-save NAME]", "red");
         return;
     }
     if (to_boolean(get_property(PENDING_PREF))) {

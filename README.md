@@ -26,6 +26,8 @@
 | `UnderTheSea sea-start` | **Optional handoff workflow.** Run the bundled `sea_start.ash` to inspect character state and either run the unfinished sea loop or, after King liberation and interaction unlock, run the postloop. This is never invoked by a plain `UnderTheSea`. |
 | `UnderTheSea sea-start status` | Print the sea-start state, inventory and codpiece report without running the workflow, changing preferences or waiting. |
 | `UnderTheSea sea-start restore` | Recover `uts_postloopCommand` after a hard interruption when a restore is pending. |
+| `UnderTheSea sea-start codpiece spell` | Explicitly equip the legacy `spell.txt` Codpiece preset. |
+| `UnderTheSea sea-start codpiece-save <name>` | Capture mounted Codpiece gems to a NEW named save without overwriting. |
 
 
 ## Optional sea-start handoff
@@ -106,3 +108,9 @@ Useful skills and iotms and stuff: https://docs.google.com/spreadsheets/d/1bAZj1
 ## Items to add support for
 
 - Folder Holder
+
+## Absorbed codMaster integration (2026-10-29)
+
+The `main` branch now declares `don_custom_functions` (and its `don-ash-lib` dependency) for the shared `don_codmaster_lib.ash` gem API. `UnderTheSea sea-start status` displays the saved `data/cod_master/saves/spell.txt` configuration without equipping or rewriting it. `UnderTheSea sea-start codpiece spell` equips that preset only on explicit request. `UnderTheSea sea-start codpiece-save name` captures mounted gems to a new file and refuses to overwrite existing files; use `codMaster snapshot spell` for a confirmed overwrite. Default sea-start, normal Sea gameplay, and postloop pearl-loading logic are unchanged.
+
+Do not install old standalone `codMaster` beside the absorbed `don_custom_functions` script: they provide the same executable filename. Back up `data/cod_master/saves/`, resolve the conflicting old checkout after verification, and preserve all personal presets. No player saves are committed to Git.
