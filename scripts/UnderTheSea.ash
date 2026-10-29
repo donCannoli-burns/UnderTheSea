@@ -1,4 +1,5 @@
 import UnderTheSeaGlobals.ash;
+import <don_codmaster_lib.ash>;
 
 // ─── PER-ACCOUNT CONFIG ───────────────────────────────────────────────────────
 // Set with the mafia CLI; optional toggles default to off.
@@ -3022,20 +3023,25 @@ void main(string... args) {
     if (command == "sea-start") {
         // Explicit opt-in: delegate to the standalone handoff script.
         // No full-loop setup or cleanup should run in this dispatcher path.
-        if (count(args) > 2)
-            abort("Usage: UnderTheSea sea-start [status|restore]");
+        if (count(args) > 3)
+            abort("Usage: UnderTheSea sea-start [status|restore|codpiece NAME|codpiece-save NAME]");
         string seaMode = count(args) > 1 ? to_lower_case(args[1]) : "";
-        if (seaMode != "" && seaMode != "status" && seaMode != "restore")
-            abort("Usage: UnderTheSea sea-start [status|restore]");
+        boolean presetMode = seaMode == "codpiece" || seaMode == "codpiece-save";
+        if (presetMode) {
+            if (count(args) != 3 || !don_cod_valid_name(args[2]))
+                abort("Usage: UnderTheSea sea-start [codpiece|codpiece-save] <preset>");
+        } else if (count(args) > 2 ||
+            (seaMode != "" && seaMode != "status" && seaMode != "restore"))
+            abort("Usage: UnderTheSea sea-start [status|restore|codpiece NAME|codpiece-save NAME]");
         string seaCommand = "call sea_start.ash";
-        if (seaMode != "")
-            seaCommand += " " + seaMode;
+        if (seaMode != "") seaCommand += " " + seaMode;
+        if (presetMode) seaCommand += " " + args[2];
         if (!cli_execute(seaCommand))
             abort("sea-start dispatch failed; check that sea_start.ash is installed and verify it.");
         return;
     }
     if (command != "" && command != "postloop")
-        abort("Unknown command \"" + command + "\" -- use UnderTheSea, UnderTheSea sim, UnderTheSea postloop, or UnderTheSea sea-start [status|restore].");
+        abort("Unknown command \"" + command + "\" -- use UnderTheSea, UnderTheSea sim, UnderTheSea postloop, or UnderTheSea sea-start [status|restore|codpiece NAME|codpiece-save NAME].");
     string autoBuyPriceLimitStorage = get_property("autoBuyPriceLimit");
     DropsItems = maximize("Drops Items",false) ? "Drops Items, sea" : "item drop, sea";
     if (command == "postloop") {
