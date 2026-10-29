@@ -1,3 +1,4 @@
+import <don_codmaster_lib.ash>;
 // Sea Prep: optional UnderTheSea branch. Independent ASH entrypoint; no legacy imports required.
 // Build: 2026-10-28 wallet-finisher v1 (sushi mat, confirmed turn/PvP spending).
 // Default: prepare aftercore and ask before end-of-day organ/turn/PvP spending.
@@ -184,7 +185,8 @@ void don_other_legacy_tasks() {
             }
     }
     // Original codMaster coldRes step, made optional to avoid changing Sea equipment.
-    if (don_flag("don_preAscColdResGems", false)) cli_execute("try; codMaster equip coldRes");
+    if (don_flag("don_preAscColdResGems", false) && !don_cod_equip_saved("coldRes"))
+        don_warn("Saved Codpiece coldRes preset unavailable or could not be equipped.");
 }
 
 void don_legacy_prep() {
@@ -272,10 +274,9 @@ boolean don_sea_stock_pearls() {
     return item_amount(pearl) >= 5;
 }
 
-// codMaster's 'equip NAME' command reads a named property map saved under
-// data/cod_master/saves/. Generate a dedicated namespaced config without using
-// its interactive 'set' command or its overwrite-confirming 'save' command.
-// This calls codMaster to perform the actual slotting; no homegrown slot writes.
+// Shared don_codmaster_lib owns the historical data/cod_master/saves/*.txt
+// format, named save/readback, and verified equipment actions.
+// This dedicated don_sea_pearls preset is intentionally overwritten by Sea Prep.
 void don_sea_load_codpiece() {
     if (!don_flag("don_preAscSeaLoadCodpiece", true)) return;
     if (available_amount($item[The Eternity Codpiece]) == 0) {
@@ -294,27 +295,17 @@ void don_sea_load_codpiece() {
 
     string [string] gem_config;
     for i from 1 to 5
-        gem_config["cod_master_Slot_" + i] = "" + to_int($item[unblemished pearl]);
-
-    string config_path = "data/cod_master/saves/don_sea_pearls.txt";
-    if (!map_to_file(gem_config, config_path)) {
-        don_warn("Could not write the codMaster pearl configuration at " + config_path);
+        gem_config[don_cod_slot_key(i)] = to_string(to_int($item[unblemished pearl]));
+    // Named Sea-owned preset only. Do not alter unrelated personal spell/coldRes saves.
+    if (!don_cod_write("don_sea_pearls", gem_config, true)) {
+        don_warn("Could not save/read back Sea Codpiece pearl preset. No equipment change attempted.");
         return;
     }
-    string [string] persisted;
-    if (!file_to_map(config_path, persisted)) {
-        don_warn("Could not read back codMaster pearl config. No equipment change attempted.");
+    don_note("Invoking absorbed codMaster to equip five pearls (config: don_sea_pearls).");
+    if (!don_cod_equip_saved("don_sea_pearls")) {
+        don_warn("codMaster equip FAILED; inspect actual Codpiece slots before retrying.");
         return;
     }
-    for i from 1 to 5 {
-        if (persisted["cod_master_Slot_" + i] != "" + to_int($item[unblemished pearl])) {
-            don_warn("codMaster config failed readback for slot " + i + ". No equipment change attempted.");
-            return;
-        }
-    }
-    don_note("Invoking codMaster to equip five pearls (config: don_sea_pearls).");
-    if (!cli_execute("codMaster equip don_sea_pearls"))
-        don_warn("codMaster reported an equip error; check its installation/configuration.");
 
     int now = don_sea_codpiece_slotted();
     if (now != 5) don_warn("Codpiece verification FAILED: " + now + "/5 pearls. Fix before ascending.");

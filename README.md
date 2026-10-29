@@ -102,3 +102,8 @@ git update
 ```
 
 Read [SEA_PREP.md](SEA_PREP.md) for commands, branch-switching precautions and dependencies. The default `main` branch and `UnderTheSea` loop remain unchanged.
+
+
+## CodMaster absorption on sea-prep branch (2026-10-29)
+
+Sea prep now imports `don_codmaster_lib.ash` directly from the `don_custom_functions` → `don-ash-lib` dependency chain. `sea-prep pearls` writes and reads back only `data/cod_master/saves/don_sea_pearls.txt`, then equips/validates the five pearl slots. The legacy `spell.txt` and `coldRes.txt` presets are read in place, not migrated. The original standalone `codMaster` checkout must not coexist with the absorbed `codMaster.ash` filename; preserve personal saves before resolving the duplicate checkout. See [SEA_PREP.md](SEA_PREP.md#direct-codmaster-integration-2026-10-29).

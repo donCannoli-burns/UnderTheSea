@@ -21,7 +21,7 @@ git update
 
 `git update` updates all tracked Git projects, including whichever branch was checked out. `git list` prints the installed project IDs; `git update <unique-project-id>` updates just one. `git sync` can restore a missing script from an installed project's checkout.
 
-**If you already have UnderTheSea on the main branch:** KoLmafia stores branch checkouts as separately named projects but both branches provide `scripts/UnderTheSea.ash` and support files. Avoid installing both in parallel: back up existing local changes, use `git list`, remove the old checkout with `git delete <exact-project-id>`, and then check out `sea-prep`. Do not delete the independent `codMaster`, `pvp_mab`, or `flogger` projects. Running `git update` on a previously installed **main** checkout will not switch it to `sea-prep` automatically.
+**If you already have UnderTheSea on the main branch:** KoLmafia stores branch checkouts as separately named projects but both branches provide `scripts/UnderTheSea.ash` and support files. Avoid installing both in parallel: back up existing local changes, use `git list`, remove the old checkout with `git delete <exact-project-id>`, and then check out `sea-prep`. Keep `pvp_mab` and `flogger` projects; the legacy standalone `codMaster` checkout now conflicts with `don_custom_functions`' absorbed `codMaster.ash`, so back up `data/cod_master/saves/`, verify the new command, and remove only the redundant old checkout. Running `git update` on a previously installed **main** checkout will not switch it to `sea-prep` automatically.
 
 ## Arguments
 
@@ -38,7 +38,7 @@ git update
 
 ## External local helpers
 
-* The pearl loader uses `codMaster`. This branch adds `github donCannoli-burns/codMaster` to `dependencies.txt`; make sure it installs and `codMaster help` works.
+* The pearl loader directly imports `don_codmaster_lib.ash` through `don_custom_functions` / `don-ash-lib`. This branch depends on `github donCannoli-burns/don_custom_functions main`; do not leave the original standalone `codMaster` checkout installed alongside it. The Sea-owned `don_sea_pearls.txt` preset is saved/read back through the same library. Your `spell.txt` and other personal saves remain untouched.
 * End-of-day cleanup calls `pvp_mab`, `flogger.ash`, `dpills`, `combo` and `CONSUME` if their branches run. These are **not bundled** and must already be installed/configured separately.
 * The optional `sea_prep` outfit, Red-Nosed Snapper familiar, `snapper fish` CCS and `sea_prep` mood are local character configuration. The wallet route restores the previous setup where supported.
 * Gameplay modes can spend resources and Meat; review `sea-prep sim` and `sea-prep check` before `sea-prep run`.
@@ -58,3 +58,8 @@ The audit recognizes the three booth actions: **Get your photo taken** (up to 3/
 When the home-clan booth is verified, all three Sheriff options report **blue ✓ (home booth verified; item-specific unlock unverified)** even if not in inventory. **Held/borrowable are distinct**: zero remaining borrow credits means the booth is stocked, but missing items cannot be borrowed today. The routine never automatically borrows props, takes photos, or spends credits. If the home clan or booth cannot be verified, the script does not claim unheld props are available.
 
 `sea-prep check` does **not** change clans. `sea-prep sim` never makes page visits or runs `clanhop`; it reports what a full run would do.
+
+
+## Direct CodMaster integration (2026-10-29)
+
+`sea-prep pearls`, `sea-prep spend`, and `sea-prep run` use the same saved map API as `codMaster save/equip`. The `coldRes` optional step reads `data/cod_master/saves/coldRes.txt` through the library rather than invoking an unverified CLI fallback. It is still disabled unless `don_preAscColdResGems=true`. The `sim`/`check` paths do not write gem configuration files. To inspect a personal preset safely run `codMaster show spell`; to apply it explicitly run `codMaster equip spell`.
