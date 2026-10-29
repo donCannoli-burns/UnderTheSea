@@ -1,0 +1,39 @@
+name: Sea Prep + absorbed CodMaster compile
+on:
+  push:
+    branches: ["sea-prep"]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: donCannoli-burns/don-ash-lib
+          ref: feature/codmaster-absorption-20261029
+          path: _don-ash-lib
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: |
+          curl -L --fail --silent --show-error -o KoLmafia-29334.jar \
+            https://github.com/kolmafia/kolmafia/releases/download/r29334/KoLmafia-29334.jar
+      - name: Verify Sea Prep and Codpiece integration; no game actions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.kolmafia/scripts"
+          cp scripts/sea-prep.ash "$HOME/.kolmafia/scripts/"
+          cp _don-ash-lib/don-master-ash-lib/scripts/don_codmaster_lib.ash "$HOME/.kolmafia/scripts/"
+          cat > "$HOME/.kolmafia/scripts/__verify_seaprep_cod.txt" <<'EOF'
+          verify don_codmaster_lib.ash
+          verify sea-prep.ash
+          exit
+          EOF
+          cd "$HOME/.kolmafia"
+          timeout 100s java -jar "$GITHUB_WORKSPACE/KoLmafia-29334.jar" --CLI __verify_seaprep_cod.txt > "$GITHUB_WORKSPACE/sea-prep-verify.log" 2>&1 || true
+          cat "$GITHUB_WORKSPACE/sea-prep-verify.log"
+          test "$(grep -Fc 'Script verification complete.' "$GITHUB_WORKSPACE/sea-prep-verify.log" || true)" -eq 2
